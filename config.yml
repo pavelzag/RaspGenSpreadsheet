@@ -1,0 +1,4 @@
+mongodb:
+    test_uri: 'test'
+    prod_uri: 'prod'
+    env: 'test'
