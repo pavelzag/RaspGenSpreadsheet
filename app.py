@@ -123,9 +123,10 @@ if __name__ == '__main__':
             selected_worksheet.update_acell(date_sheet_number, current_day_str)
             # Updating the hours field
             monthly_hours, monthly_minutes = divmod(math.ceil(time_spent_dict[current_day]/60), 60)
-            monthly_minutes = str(monthly_minutes).zfill(2)
-            displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
-            selected_worksheet.update_acell(hours_sheet_number, displayed_sum)
+            if not monthly_minutes == 0 and not monthly_hours == 0:
+                monthly_minutes = str(monthly_minutes).zfill(2)
+                displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
+                selected_worksheet.update_acell(hours_sheet_number, displayed_sum)
             cell_num += 1
             if hebrew_day == 'ש':
                 cell_num += 1
