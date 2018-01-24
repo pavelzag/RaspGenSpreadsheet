@@ -18,7 +18,7 @@ worksheet_list = worksheet.worksheets()
 time_spent_dict = {}
 # This dictionary holds the number of the week and the current date for further usage calculations
 day_and_week_dict = defaultdict(list)
-print('s')
+weekly_usage_list = []
 
 
 def daterange(start_date, end_date):
@@ -63,7 +63,25 @@ def get_the_week(current_day):
     logging_handler(msg)
     return week_number
 
+
+def insert_weekly_calc_cells(cell_num):
+    # Insert blank for the weekly calculation
+    hebrew_date_name = '{}{}'.format('A', cell_num)
+    date_sheet_number = '{}{}'.format('B', cell_num)
+    hours_sheet_number = '{}{}'.format('C', cell_num)
+    blank_val = ''
+    selected_worksheet.update_acell(hebrew_date_name, blank_val)
+    selected_worksheet.update_acell(date_sheet_number, blank_val)
+    selected_worksheet.update_acell(hours_sheet_number, blank_val)
+
+
+def get_saturdays_amt(year=2018, month=1):
+    # Calculates amount of Saturdays per relevant month
+    return len([1 for i in calendar.monthcalendar(year, month) if i[6] != 0])
+
+
 if __name__ == '__main__':
+    # Looping through every month per tab
     for worksheet_tab in worksheet_list:
         worksheet_tab_title = worksheet_tab._title
         selected_worksheet = worksheet.worksheet(worksheet_tab_title)
@@ -80,15 +98,22 @@ if __name__ == '__main__':
         first_day_of_month = 1
         last_day_of_month = get_last_day(2018, month_number)
         last_sheet_number = '{}{}'.format('B', last_day_of_month+1)
-        for x in range(first_day_of_month, last_day_of_month):
-            current_day = date(2018, month_number, x)
+        saturdays_amt = get_saturdays_amt(year = start_date.year, month = start_date.month)
+        cells_number = len(range(first_day_of_month, last_day_of_month)) + saturdays_amt + 1
+        days_number = len(range(first_day_of_month, last_day_of_month))
+        cell_num = 1
+        day_num = 0
+        sum_cell_list = []
+        # Looping through every cell for every day in month + a cell for every week for the weekly amount
+        while cell_num < cells_number:
+            day_num += 1
+            current_day = date(2018, month_number, day_num)
             what_week = get_the_week(current_day)
             current_day_str = str(current_day.day)
-            # day_and_week_dict[what_week].append(current_day_str)
             day_and_week_dict[what_week].append(current_day)
-            hebrew_date_name = '{}{}'.format('A', x+1)
-            date_sheet_number = '{}{}'.format('B', x+1)
-            hours_sheet_number = '{}{}'.format('C', x+1)
+            hebrew_date_name = '{}{}'.format('A', cell_num+1)
+            date_sheet_number = '{}{}'.format('B', cell_num+1)
+            hours_sheet_number = '{}{}'.format('C', cell_num+1)
             hebrew_day = get_hebrew_day(current_day.strftime("%A"))
             msg = '{} {} {}'.format('Updating the spreadsheet for', worksheet_tab_title, current_day)
             logging_handler(msg)
@@ -97,10 +122,31 @@ if __name__ == '__main__':
             # Updating the day field
             selected_worksheet.update_acell(date_sheet_number, current_day_str)
             # Updating the hours field
-            selected_worksheet.update_acell(hours_sheet_number, math.ceil(time_spent_dict[current_day]/60))
+            monthly_hours, monthly_minutes = divmod(math.ceil(time_spent_dict[current_day]/60), 60)
+            monthly_minutes = str(monthly_minutes).zfill(2)
+            displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
+            selected_worksheet.update_acell(hours_sheet_number, displayed_sum)
+            cell_num += 1
+            if hebrew_day == 'ש':
+                cell_num += 1
+                insert_weekly_calc_cells(cell_num)
+                sum_cell_list.append(cell_num)
         for week in day_and_week_dict:
-            weekly_usage = calculate_weekly_usage(week, 'h')
-            msg = '{} {}{} {} {}'.format('The weekly usage for the', week, 'th week is', weekly_usage, 'hours')
+            weekly_usage = calculate_weekly_usage(week, 'm')
+            weekly_usage_list.append(weekly_usage)
+            msg = '{} {}{} {} {}'.format('The weekly usage for the', week, 'th week is', weekly_usage, 'minutes')
             logging_handler(msg)
+        # Calculating the weekly amount
+        weekly_usage_index = 0
+        for summary_cell in sum_cell_list:
+            summary_cell_title_location = '{}{}'.format('A', summary_cell)
+            summary_cell_location = '{}{}'.format('C', summary_cell)
+            selected_worksheet.update_acell(summary_cell_title_location, 'Work Sum')
+            monthly_usage_in_minutes = weekly_usage_list[weekly_usage_index]
+            monthly_hours, monthly_minutes = divmod(weekly_usage_list[weekly_usage_index], 60)
+            monthly_minutes = str(monthly_minutes).zfill(2)
+            displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
+            selected_worksheet.update_acell(summary_cell_location, displayed_sum)
+            weekly_usage_index += 1
         msg = '{} {}'.format('Finished updating', worksheet_tab_title)
         logging_handler(msg)
