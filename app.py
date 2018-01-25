@@ -19,6 +19,8 @@ time_spent_dict = {}
 # This dictionary holds the number of the week and the current date for further usage calculations
 day_and_week_dict = defaultdict(list)
 weekly_usage_list = []
+workday_usage_list = []
+weekend_usage_list = []
 
 
 def daterange(start_date, end_date):
@@ -53,6 +55,37 @@ def calculate_weekly_usage(week, time_format='m'):
         return weekly_usage_sum_minutes
     elif time_format == 'h':
         return weekly_usage_sum_hours
+
+
+def calculate_workdays_weekends_usage(week, workdays=True, time_format='m'):
+    workday_usage = []
+    weekend_usage = []
+    # This function calculates the workdays usage
+    for day in day_and_week_dict[week]:
+        if day.weekday() == 3 or day.weekday() == 4 or day.weekday() == 5:
+            time_spent_this_day = time_spent_dict[day]
+            weekend_usage.append(time_spent_this_day)
+        else:
+            time_spent_this_day = time_spent_dict[day]
+            workday_usage.append(time_spent_this_day)
+    weekend_usage_sum_minutes = math.ceil(sum(weekend_usage) / 60)
+    weekend_usage_sum_hours = math.ceil(sum(weekend_usage) / 3600)
+    workday_usage_sum_minutes = math.ceil(sum(workday_usage) / 60)
+    workday_usage_sum_hours = math.ceil(sum(workday_usage) / 3600)
+    del workday_usage[:]
+    del weekend_usage[:]
+    if workdays:
+        if time_format == 'm':
+            return workday_usage_sum_minutes
+        elif time_format == 'h':
+            return workday_usage_sum_hours
+    else:
+        if time_format == 'm':
+            return weekend_usage_sum_minutes
+        elif time_format == 'h':
+            return weekend_usage_sum_hours
+
+
 
 
 def get_the_week(current_day):
@@ -137,17 +170,45 @@ if __name__ == '__main__':
             weekly_usage_list.append(weekly_usage)
             msg = '{} {}{} {} {}'.format('The weekly usage for the', week, 'th week is', weekly_usage, 'minutes')
             logging_handler(msg)
+            # Weekends and Workdays
+            workdays_usage = calculate_workdays_weekends_usage(week, time_format='m')
+            workday_usage_list.append(workdays_usage)
+            weekends_usage = calculate_workdays_weekends_usage(week, workdays=False, time_format='m')
+            weekend_usage_list.append(weekends_usage)
         # Calculating the weekly amount
         weekly_usage_index = 0
         for summary_cell in sum_cell_list:
             summary_cell_title_location = '{}{}'.format('A', summary_cell)
             summary_cell_location = '{}{}'.format('C', summary_cell)
+            workday_cell_location = '{}{}'.format('D', summary_cell)
+            weekend_cell_location = '{}{}'.format('E', summary_cell)
+
             selected_worksheet.update_acell(summary_cell_title_location, 'Work Sum')
-            monthly_usage_in_minutes = weekly_usage_list[weekly_usage_index]
-            monthly_hours, monthly_minutes = divmod(weekly_usage_list[weekly_usage_index], 60)
-            monthly_minutes = str(monthly_minutes).zfill(2)
-            displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
+
+            weekly_usage_in_minutes = weekly_usage_list[weekly_usage_index]
+            weekly_hours, weekly_minutes = divmod(weekly_usage_list[weekly_usage_index], 60)
+            weekly_minutes = str(weekly_minutes).zfill(2)
+            weekly_displayed_sum = '{}:{}{}'.format(weekly_hours, weekly_minutes, 'h')
+
+            workday_usage_in_minutes = workday_usage_list[weekly_usage_index]
+            workday_hours, workday_minutes = divmod(workday_usage_list[weekly_usage_index], 60)
+            workday_minutes = str(workday_minutes).zfill(2)
+            workday_displayed_sum = '{}:{}{}'.format(workday_hours, workday_minutes, 'h')
+
+            weekend_usage_in_minutes = weekend_usage_list[weekly_usage_index]
+            weekend_hours, weekend_minutes = divmod(weekend_usage_list[weekly_usage_index], 60)
+            weekend_minutes = str(weekend_minutes).zfill(2)
+            weekend_displayed_sum = '{}:{}{}'.format(weekend_hours, weekend_minutes, 'h')
+
+            displayed_sum = '{} : {}'.format('סך הכל', weekly_displayed_sum)
             selected_worksheet.update_acell(summary_cell_location, displayed_sum)
+
+            displayed_sum = '{} : {}'.format('אמצע שבוע', workday_displayed_sum)
+            selected_worksheet.update_acell(workday_cell_location, displayed_sum)
+
+            displayed_sum = '{} : {}'.format('סופ״ש', weekend_displayed_sum)
+            selected_worksheet.update_acell(weekend_cell_location, displayed_sum)
+
             weekly_usage_index += 1
         msg = '{} {}'.format('Finished updating', worksheet_tab_title)
         logging_handler(msg)
