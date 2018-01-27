@@ -86,8 +86,6 @@ def calculate_workdays_weekends_usage(week, workdays=True, time_format='m'):
             return weekend_usage_sum_hours
 
 
-
-
 def get_the_week(current_day):
     # Checks the number of the week per entered day
     year, month, day = current_day.strftime('%Y %-m %-d').split(' ')
@@ -157,7 +155,8 @@ if __name__ == '__main__':
             # Updating the hours field
             monthly_hours, monthly_minutes = divmod(math.ceil(time_spent_dict[current_day]/60), 60)
             if not monthly_minutes == 0 and not monthly_hours == 0:
-                monthly_minutes = str(monthly_minutes).zfill(2)
+                if not monthly_minutes > 10:
+                    monthly_minutes = str(monthly_minutes).zfill(2)
                 displayed_sum = '{}:{}{}'.format(monthly_hours, monthly_minutes, 'h')
                 selected_worksheet.update_acell(hours_sheet_number, displayed_sum)
             cell_num += 1
